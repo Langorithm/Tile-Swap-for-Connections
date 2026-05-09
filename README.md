@@ -2,7 +2,7 @@
 
 A Chrome extension that lets you drag and drop tiles to reorder them in [NYT Connections](https://www.nytimes.com/games/connections).
 
-![Tile Swap logo](tileswap-logo.png)
+![Tile Swap logo](https://github.com/Langorithm/Tile-Swap-for-Connections/blob/main/publish/icon.png?raw=true)
 
 ## What it does
 

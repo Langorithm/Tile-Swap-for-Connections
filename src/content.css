@@ -1,0 +1,16 @@
+/* Draggable tile cursor */
+[data-testid="card-label"][draggable="true"] {
+  cursor: grab;
+}
+
+/* The tile being dragged fades in place; ghost image stays full opacity */
+[data-testid="card-label"].cnx-dragging {
+  opacity: 0.35;
+  cursor: grabbing;
+}
+
+/* Highlight the drop target */
+[data-testid="card-label"].cnx-drag-over {
+  outline: 3px solid #333;
+  outline-offset: -3px;
+}

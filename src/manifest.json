@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Tile Swap for Connections",
+  "version": "1.0",
+  "description": "Drag and drop tiles to reorder them in NYT Connections",
+  "content_scripts": [
+    {
+      "matches": ["*://www.nytimes.com/games/connections*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

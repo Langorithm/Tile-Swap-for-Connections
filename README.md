@@ -23,11 +23,11 @@ NYT Connections shows your 16 tiles in a fixed order. This extension makes every
 1. Clone or download this repo
 2. Open Chrome and go to `chrome://extensions`
 3. Enable **Developer mode** (toggle in the top-right)
-4. Click **Load unpacked** and select the `plugin/` folder
+4. Click **Load unpacked** and select the `src/` folder
 
 ## How it works
 
-The extension injects a content script (`plugin/content.js`) into `nytimes.com/games/connections*`. It:
+The extension injects a content script (`src/content.js`) into `nytimes.com/games/connections*`. It:
 
 1. Uses a `MutationObserver` to detect when Connections renders or updates tiles
 2. Attaches HTML5 drag-and-drop event listeners to each tile

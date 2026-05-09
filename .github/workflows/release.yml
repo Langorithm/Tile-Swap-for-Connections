@@ -1,0 +1,28 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from manifest
+        id: version
+        run: echo "version=$(jq -r .version src/manifest.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Zip extension
+        run: mv src tile-swap-plugin && cd tile-swap-plugin && zip -r ../tile-swap-for-connections.zip .
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
+          files: tile-swap-for-connections.zip

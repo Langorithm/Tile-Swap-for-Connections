@@ -17,15 +17,26 @@ jobs:
         id: version
         run: echo "version=$(jq -r .version src/manifest.json)" >> "$GITHUB_OUTPUT"
 
-      - name: Zip extension
+      - name: Install web-ext
+        run: npm install -g web-ext
+
+      - name: Sign extension for Firefox (.xpi)
+        run: web-ext sign --source-dir=src --api-key=${{ secrets.AMO_JWT_ISSUER }} --api-secret=${{ secrets.AMO_JWT_SECRET }} --channel=unlisted
+
+      - name: Rename signed .xpi
+        run: mv web-ext-artifacts/*.xpi tile-swap-connections-firefox.xpi
+
+      - name: Zip extension for Chrome (.zip)
         run: |
           cp "Install Instructions.html" src/
           mv src tile-swap-plugin
-          cd tile-swap-plugin && zip -r ../tile-swap-for-connections.zip .
+          cd tile-swap-plugin && zip -r ../tile-swap-connections-chrome.zip .
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: v${{ steps.version.outputs.version }}
-          files: tile-swap-for-connections.zip
+          files: |
+            tile-swap-connections-chrome.zip
+            tile-swap-connections-firefox.xpi

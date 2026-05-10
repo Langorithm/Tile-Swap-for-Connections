@@ -18,7 +18,10 @@ jobs:
         run: echo "version=$(jq -r .version src/manifest.json)" >> "$GITHUB_OUTPUT"
 
       - name: Zip extension
-        run: mv src tile-swap-plugin && cd tile-swap-plugin && zip -r ../tile-swap-for-connections.zip .
+        run: |
+          cp "Install Instructions.html" src/
+          mv src tile-swap-plugin
+          cd tile-swap-plugin && zip -r ../tile-swap-for-connections.zip .
 
       - name: Create release
         uses: softprops/action-gh-release@v2

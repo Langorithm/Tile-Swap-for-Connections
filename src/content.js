@@ -1,20 +1,37 @@
 (function () {
   'use strict';
 
+  const SITE = (() => {
+    const h = location.hostname;
+    if (h.includes('nytimes.com')) return 'nyt';
+    if (h.includes('connectionsgame.org')) return 'cgame';
+    return null;
+  })();
+
+  if (!SITE) return;
+
   let dragSrc = null;
   let dragOverTarget = null;
   let dropTarget = null;
-  let orderMap = new Map();  // flipId -> CSS order index
+  let orderMap = new Map();  // cardKey -> CSS order index
   let lastCardCount = 0;
   let debounceTimer = null;
 
   function getContainer() {
-    return document.querySelector('[class*="Cards-module_cardsContainer"]');
+    if (SITE === 'nyt') return document.querySelector('[class*="Cards-module_cardsContainer"]');
+    return document.getElementById('grid');
   }
 
   function getCardsByDom() {
     const c = getContainer();
-    return c ? [...c.querySelectorAll('[data-testid="card-label"]')] : [];
+    if (!c) return [];
+    if (SITE === 'nyt') return [...c.querySelectorAll('[data-testid="card-label"]')];
+    return [...c.querySelectorAll('.word')];
+  }
+
+  function getCardKey(card) {
+    if (SITE === 'nyt') return card.dataset.flipId;
+    return card.textContent.trim();
   }
 
   // Reset orderMap from current DOM order and stamp CSS order values to match.
@@ -24,7 +41,7 @@
     if (cards.length === 0) return;
     orderMap.clear();
     cards.forEach((card, i) => {
-      orderMap.set(card.dataset.flipId, i);
+      orderMap.set(getCardKey(card), i);
       card.style.order = i;
     });
   }
@@ -32,16 +49,16 @@
   // After a category is solved (tiles removed), preserve user's order for remaining tiles.
   function applyOrderMap() {
     const cards = getCardsByDom();
-    const present = new Set(cards.map(c => c.dataset.flipId));
+    const present = new Set(cards.map(c => getCardKey(c)));
 
     const sorted = [...orderMap.entries()]
       .filter(([id]) => present.has(id))
       .sort(([, a], [, b]) => a - b)
       .map(([id]) => id);
 
-    cards.filter(c => !orderMap.has(c.dataset.flipId)).forEach(c => sorted.push(c.dataset.flipId));
+    cards.filter(c => !orderMap.has(getCardKey(c))).forEach(c => sorted.push(getCardKey(c)));
 
-    const cardMap = new Map(cards.map(c => [c.dataset.flipId, c]));
+    const cardMap = new Map(cards.map(c => [getCardKey(c), c]));
     orderMap.clear();
     sorted.forEach((id, i) => {
       orderMap.set(id, i);
@@ -52,8 +69,8 @@
   // Swap CSS order values (no DOM node movement — React never sees this),
   // then FLIP-animate both tiles sliding to their new positions.
   function animateSwap(a, b) {
-    const aId = a.dataset.flipId;
-    const bId = b.dataset.flipId;
+    const aId = getCardKey(a);
+    const bId = getCardKey(b);
     const aOrder = orderMap.get(aId) ?? 0;
     const bOrder = orderMap.get(bId) ?? 0;
 
@@ -107,8 +124,9 @@
     if (card.dataset.cnxDnd) return;
     card.dataset.cnxDnd = '1';
     card.setAttribute('draggable', 'true');
-    if (orderMap.has(card.dataset.flipId)) {
-      card.style.order = orderMap.get(card.dataset.flipId);
+    const key = getCardKey(card);
+    if (orderMap.has(key)) {
+      card.style.order = orderMap.get(key);
     }
     card.addEventListener('dragstart', onDragStart);
     card.addEventListener('dragenter', onDragEnter);
@@ -125,7 +143,7 @@
   function onDragStart(e) {
     dragSrc = this;
     dropTarget = null;
-    e.dataTransfer.setData('text/plain', this.dataset.flipId || '');
+    e.dataTransfer.setData('text/plain', getCardKey(this) || '');
     e.dataTransfer.effectAllowed = 'move';
     requestAnimationFrame(() => this.classList.add('cnx-dragging'));
   }
@@ -167,17 +185,21 @@
 
     if (dropTarget) {
       animateSwap(dragSrc, dropTarget);
-      dragSrc.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      // NYT needs a synthetic click to clear any tile selection state after drag
+      if (SITE === 'nyt') {
+        dragSrc.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      }
       dropTarget = null;
     }
 
     dragSrc = null;
   }
 
-  // Track explicit shuffle clicks so we know when to accept a new DOM order.
+  // Track explicit shuffle/reset clicks so we know when to accept a new DOM order.
   let shuffleClicked = false;
   document.addEventListener('click', e => {
-    if (e.target.closest('[data-testid="shuffle-btn"]')) shuffleClicked = true;
+    if (SITE === 'nyt' && e.target.closest('[data-testid="shuffle-btn"]')) shuffleClicked = true;
+    if (SITE === 'cgame' && (e.target.closest('#shuffle') || e.target.closest('#replayGame'))) shuffleClicked = true;
   }, true);
 
   const observer = new MutationObserver(() => {
@@ -194,11 +216,11 @@
         // First time we see tiles (initial load) — snapshot the DOM order
         syncFromDom();
       } else if (shuffleClicked) {
-        // User clicked Shuffle — accept whatever order React produced
+        // User clicked Shuffle — accept whatever order the game produced
         shuffleClicked = false;
         syncFromDom();
       } else {
-        // Any other mutation (timer re-render, FLIP animation, tile selection, etc.)
+        // Any other mutation (re-render, FLIP animation, tile selection, etc.)
         // — reassert our custom order so the game can't clobber it
         applyOrderMap();
       }
